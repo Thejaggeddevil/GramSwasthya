@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gram_seva/screens/sign_up.dart';
-import 'package:gram_seva/screens/sign_up.dart';
+
 import 'package:gram_seva/screens/sos_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -23,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (user != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const SosScreen()),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     } else {
       Navigator.pushReplacement(
