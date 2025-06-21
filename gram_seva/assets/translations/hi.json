@@ -1,0 +1,21 @@
+{
+  "createAccount": "खाता बनाएँ",
+  "fullName": "पूरा नाम",
+  "phoneNumber": "फोन नंबर",
+  "email": "ईमेल",
+  "password": "पासवर्ड",
+  "confirmPassword": "पासवर्ड की पुष्टि करें",
+  "preferredLanguage": "पसंदीदा भाषा",
+  "signUpButton": "सुरक्षा के लिए साइन अप करें",
+  "termsNote": "साइन अप करके, आप हमारी शर्तों और गोपनीयता नीति से सहमत होते हैं।",
+  "nameRequired": "कृपया नाम दर्ज करें",
+  "phoneRequired": "फोन नंबर आवश्यक है",
+  "invalidPhone": "मान्य 10 अंकों का नंबर दर्ज करें",
+  "emailRequired": "ईमेल आवश्यक है",
+  "invalidEmail": "अमान्य ईमेल",
+  "passwordRequired": "पासवर्ड आवश्यक है",
+  "weakPassword": "कम से कम 6 अक्षर",
+  "passwordsDoNotMatch": "पासवर्ड मेल नहीं खाते",
+  "emailExists": "ईमेल पहले से पंजीकृत है",
+  "signupFailed": "साइन-अप असफल हुआ"
+}

@@ -1,0 +1,23 @@
+{
+  "signup": {
+    "title": "Create Account",
+    "name": "Full Name",
+    "phone": "Phone Number",
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "language": "Preferred Language",
+    "button": "SIGN UP FOR SAFETY",
+    "agreement": "By signing up, you agree to our Terms and Privacy Policy",
+    "enter_name": "Please enter your name",
+    "enter_phone": "Phone number is required for emergencies",
+    "invalid_phone": "Enter a valid 10-digit phone number",
+    "enter_email": "Email is required",
+    "enter_password": "Password is required",
+    "short_password": "Password must be 6+ characters",
+    "passwords_do_not_match": "Passwords do not match!",
+    "failed": "Sign-up failed",
+    "email_exists": "Email already registered",
+    "weak_password": "Use a stronger password (min 6 chars)"
+  }
+}
