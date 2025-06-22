@@ -20,6 +20,7 @@ dependencies:
   geocoding: ^4.0.0
   telephony: ^0.2.0
   connectivity_plus: ^5.0.2
+  app_settings: ^5.1.1
 
 dev_dependencies:
   flutter_test:

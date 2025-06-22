@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:gram_seva/screens/sign_up.dart';
 import 'package:gram_seva/screens/main_screen.dart';
 //import 'package:gram_seva/screens/sos_screen.dart';
@@ -34,26 +35,24 @@ class _SplashScreenState extends State<SplashScreen> {
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) {
-        await showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Location Services Disabled'),
-              content: const Text(
-                'Please enable location services to use this app.',
-              ),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('OK'),
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                    await Geolocator.openLocationSettings();
-                  },
+        // Redirect directly to location settings without showing dialog
+        await AppSettings.openAppSettings(type: AppSettingsType.location);
+        // After returning from settings, check again
+        await Future.delayed(const Duration(seconds: 2));
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          // If still disabled, show a brief message and continue
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Location services are required for this app to function properly.',
                 ),
-              ],
+                duration: Duration(seconds: 3),
+              ),
             );
-          },
-        );
+          }
+        }
       }
     }
 

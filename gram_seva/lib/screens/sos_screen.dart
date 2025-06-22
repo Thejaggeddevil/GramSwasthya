@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import 'package:telephony/telephony.dart';
 import 'package:gram_seva/utils/responsive_helper.dart';
-import 'package:gram_seva/utils/sms_sender.dart';
+import 'package:gram_seva/utils/kotlin_backend_service.dart';
 import 'emergency_contacts_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -994,6 +994,9 @@ class _SOSScreenState extends State<SOSScreen> {
   bool _isSending = false;
   String? _currentLocation;
   UserModel? _userData;
+  final TextEditingController _customMessageController =
+      TextEditingController();
+  bool _useCustomMessage = false;
 
   @override
   void initState() {
@@ -1093,46 +1096,65 @@ class _SOSScreenState extends State<SOSScreen> {
     setState(() => _isSending = true);
 
     try {
-      // Check SMS permissions and capability
-      final hasPermissions = await SmsSender.checkSmsPermissions();
-      final isCapable = await SmsSender.isSmsCapable();
+      // Check if we're on a platform that supports Kotlin backend
+      if (kIsWeb || Platform.isWindows) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Detailed SOS is only available on mobile devices'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
 
-      if (!hasPermissions) {
+      // Check network connectivity first
+      final hasNetwork = await KotlinBackendService.checkNetworkConnectivity();
+      if (!hasNetwork) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'No internet connection. Please check your network and try again.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Check permissions using Kotlin backend
+      final permissions = await KotlinBackendService.checkPermissions();
+
+      if (!permissions['sms']!) {
         throw Exception('SMS permissions not granted');
       }
 
-      if (!isCapable && !kIsWeb && !Platform.isWindows) {
-        throw Exception('Device cannot send SMS');
+      if (!permissions['location']!) {
+        throw Exception('Location permissions not granted');
       }
 
-      // Send SOS message using the comprehensive SMS sender
-      final success = await SmsSender.sendSOSMessage(
-        emergencyContacts: _userData!.emergencyContacts,
+      // Send complete SOS using Kotlin backend
+      final success = await KotlinBackendService.sendCompleteSOS(
         userName: _userData!.fullName,
         userPhone: _userData!.phoneNumber,
-        sendToAll: true,
+        emergencyContacts: _userData!.emergencyContacts,
+        customMessage:
+            _useCustomMessage && _customMessageController.text.trim().isNotEmpty
+                ? _customMessageController.text.trim()
+                : null,
       );
 
       if (success) {
         if (context.mounted) {
-          // Show success message based on platform
-          if (kIsWeb || Platform.isWindows) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'SOS alert logged successfully! (SMS simulation for desktop)',
-                ),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Emergency SOS sent to all contacts!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Emergency SOS sent to all contacts!'),
+              backgroundColor: Colors.green,
+            ),
+          );
         }
       } else {
         throw Exception('Failed to send SOS message');
@@ -1144,12 +1166,18 @@ class _SOSScreenState extends State<SOSScreen> {
         if (e.toString().contains('permission')) {
           errorMessage =
               'SMS permissions not granted. Please enable SMS permissions in app settings.';
+        } else if (e.toString().contains('location')) {
+          errorMessage =
+              'Location permissions not granted. Please enable location permissions in app settings.';
         } else if (e.toString().contains('capable')) {
           errorMessage =
               'This device cannot send SMS. Please use a mobile device.';
         } else if (e.toString().contains('network')) {
           errorMessage =
               'Network error. Please check your internet connection.';
+        } else if (e.toString().contains('offline')) {
+          errorMessage =
+              'Firebase is offline. SOS will be saved when connection is restored.';
         } else {
           errorMessage = 'Error sending SOS: ${e.toString()}';
         }
@@ -1184,7 +1212,13 @@ class _SOSScreenState extends State<SOSScreen> {
               width: double.maxFinite,
               height: 400,
               child: StreamBuilder<QuerySnapshot>(
-                stream: SmsSender.getSOSHistory(),
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('sos_history')
+                        .where('userName', isEqualTo: _userData?.fullName)
+                        .orderBy('timestamp', descending: true)
+                        .limit(50)
+                        .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return const Center(
@@ -1207,10 +1241,9 @@ class _SOSScreenState extends State<SOSScreen> {
                     itemBuilder: (context, index) {
                       final data = docs[index].data() as Map<String, dynamic>;
                       final timestamp = data['timestamp'] as Timestamp?;
-                      final location = data['location'] as String? ?? 'Unknown';
-                      final contacts = List<String>.from(
-                        data['contactsNotified'] ?? [],
-                      );
+                      final location =
+                          'Lat: ${data['latitude']?.toStringAsFixed(4) ?? 'N/A'}, Lng: ${data['longitude']?.toStringAsFixed(4) ?? 'N/A'}';
+                      final language = data['language'] as String? ?? 'Unknown';
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
@@ -1228,7 +1261,7 @@ class _SOSScreenState extends State<SOSScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Location: $location'),
-                              Text('Contacts: ${contacts.join(', ')}'),
+                              Text('Language: $language'),
                             ],
                           ),
                           trailing: const Icon(
@@ -1297,6 +1330,220 @@ class _SOSScreenState extends State<SOSScreen> {
             ],
           ),
     );
+  }
+
+  Future<void> _pickContactFromPhonebook() async {
+    try {
+      if (kIsWeb || Platform.isWindows) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Contact picker is only available on mobile devices',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Use Kotlin backend to pick contact
+      final contactData = await KotlinBackendService.pickContact();
+
+      if (contactData != null && context.mounted) {
+        // Show dialog to confirm adding the contact
+        final shouldAdd = await showDialog<bool>(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('Add Emergency Contact'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Name: ${contactData['name']}'),
+                    Text('Phone: ${contactData['phone']}'),
+                    const SizedBox(height: 16),
+                    const Text('Add this contact to your emergency contacts?'),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Add Contact'),
+                  ),
+                ],
+              ),
+        );
+
+        if (shouldAdd == true) {
+          // Add contact to user's emergency contacts
+          await _addContactToEmergencyContacts(
+            contactData['name']!,
+            contactData['phone']!,
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking contact: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _addContactToEmergencyContacts(String name, String phone) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // Get current emergency contacts
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+
+      if (userDoc.exists) {
+        final currentContacts = List<String>.from(
+          userDoc.data()!['emergencyContacts'] ?? [],
+        );
+        final currentNames = List<String>.from(
+          userDoc.data()!['emergencyContactNames'] ?? [],
+        );
+
+        // Add new contact if not already present
+        if (!currentContacts.contains(phone)) {
+          currentContacts.add(phone);
+          currentNames.add(name);
+
+          // Update Firestore
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({
+                'emergencyContacts': currentContacts,
+                'emergencyContactNames': currentNames,
+              });
+
+          // Reload user data
+          await _loadUserData();
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Added $name to emergency contacts'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Contact already exists in emergency contacts'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding contact: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showManualContactDialog() async {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Add Emergency Contact'),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Name',
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter a name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number',
+                      prefixIcon: Icon(Icons.phone),
+                    ),
+                    keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter a phone number';
+                      }
+                      if (value.length < 10) {
+                        return 'Please enter a valid phone number';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (formKey.currentState!.validate()) {
+                    Navigator.pop(context, true);
+                  }
+                },
+                child: const Text('Add Contact'),
+              ),
+            ],
+          ),
+    );
+
+    if (result == true) {
+      await _addContactToEmergencyContacts(
+        nameController.text.trim(),
+        phoneController.text.trim(),
+      );
+    }
+
+    nameController.dispose();
+    phoneController.dispose();
   }
 
   @override
@@ -1396,6 +1643,71 @@ class _SOSScreenState extends State<SOSScreen> {
                                       color: Colors.grey[600],
                                     ),
                                   ),
+                                  SizedBox(height: 12 * scaleFactor),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      TextButton.icon(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      const EmergencyContactsScreen(),
+                                            ),
+                                          ).then((_) {
+                                            _loadUserData();
+                                          });
+                                        },
+                                        icon: Icon(
+                                          Icons.edit,
+                                          size: 16 * scaleFactor,
+                                          color: Colors.blue[700],
+                                        ),
+                                        label: Text(
+                                          'Edit Contacts',
+                                          style: TextStyle(
+                                            fontSize: 14 * scaleFactor,
+                                            color: Colors.blue[700],
+                                          ),
+                                        ),
+                                      ),
+                                      TextButton.icon(
+                                        onPressed:
+                                            () => _pickContactFromPhonebook(),
+                                        icon: Icon(
+                                          Icons.contact_phone,
+                                          size: 16 * scaleFactor,
+                                          color: Colors.green[700],
+                                        ),
+                                        label: Text(
+                                          'Add Contact',
+                                          style: TextStyle(
+                                            fontSize: 14 * scaleFactor,
+                                            color: Colors.green[700],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8 * scaleFactor),
+                                  TextButton.icon(
+                                    onPressed: () => _showManualContactDialog(),
+                                    icon: Icon(
+                                      Icons.edit_note,
+                                      size: 16 * scaleFactor,
+                                      color: Colors.purple[700],
+                                    ),
+                                    label: Text(
+                                      'Add Contact Manually',
+                                      style: TextStyle(
+                                        fontSize: 14 * scaleFactor,
+                                        color: Colors.purple[700],
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1426,11 +1738,41 @@ class _SOSScreenState extends State<SOSScreen> {
                                   ),
                                   SizedBox(height: 8 * scaleFactor),
                                   Text(
-                                    'Please add emergency contacts in your profile',
+                                    'Please add emergency contacts to send SOS alerts',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16 * scaleFactor,
                                       color: Colors.orange[600],
+                                    ),
+                                  ),
+                                  SizedBox(height: 16 * scaleFactor),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) =>
+                                                  const EmergencyContactsScreen(),
+                                        ),
+                                      ).then((_) {
+                                        // Reload user data when returning from contacts screen
+                                        _loadUserData();
+                                      });
+                                    },
+                                    icon: const Icon(
+                                      Icons.add,
+                                      color: Colors.white,
+                                    ),
+                                    label: const Text(
+                                      'Add Emergency Contacts',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange[700],
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -1554,5 +1896,11 @@ class _SOSScreenState extends State<SOSScreen> {
                 ),
               ),
     );
+  }
+
+  @override
+  void dispose() {
+    _customMessageController.dispose();
+    super.dispose();
   }
 }
