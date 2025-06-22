@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Gram_seva_backend"</string>
+    <string name="pick_emergency_contact">आपातकालीन संपर्क चुनें</string>
+    <string name="send_sos">एसओएस भेजें</string>
+    <string name="location_not_found">⚠️ स्थान नहीं मिला</string>
+    <string name="sos_sent">📤 एसओएस भेज दिया गया!</string>
+    <string name="english">अंग्रेज़ी</string>
+    <string name="hindi">हिंदी</string>
+    <string name="location_error">⚠️ स्थान प्राप्त करने में त्रुटि</string>
+</resources>

@@ -85,6 +85,12 @@ dependencies {
     // When using the BoM, don't specify versions in Firebase dependencies
     implementation("com.google.firebase:firebase-analytics")
 
+
+        implementation("androidx.activity:activity-compose:1.8.2")
+        implementation("androidx.compose.material3:material3:1.1.2")
+
+
+
 }
 
 apply(plugin = "com.google.gms.google-services")

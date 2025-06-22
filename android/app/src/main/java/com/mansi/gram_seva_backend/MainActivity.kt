@@ -1,52 +1,49 @@
 package com.mansi.gram_seva_backend
 
+import android.Manifest
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.mansi.gram_seva_backend.firebase.FirestoreManager
-import com.mansi.gram_seva_backend.utils.LocationHelper
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import com.mansi.gram_seva_backend.SOSScreen
+import com.mansi.gram_seva_backend.ui.theme.Gram_seva_backendTheme
+
+
 
 class MainActivity : ComponentActivity() {
-
-    private lateinit var locationHelper: LocationHelper
-    private lateinit var firestoreManager: FirestoreManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        locationHelper = LocationHelper(this)
-        firestoreManager = FirestoreManager()
-
-        // These values should be taken from actual input fields or login later
-        val userName = "Mansi Bhandari"
-        val userPhone = "+91XXXXXXXXXX" // you can pass from login/signup
-        val currentTime = System.currentTimeMillis()
-
-        locationHelper.getCurrentLocation(
-            onSuccess = { loc ->
-                firestoreManager.sendSOS(
-                    name = userName,
-                    phone = userPhone,
-                    location = loc,
-                    timestamp = currentTime,
-                    onSuccess = {
-                        println("✅ SOS saved to Firebase")
-                    },
-                    onFailure = {
-                        println("❌ SOS save failed: ${it.message}")
-                    }
-                )
-
-                // Optional: Send SMS to emergency contact from here too
-                // SmsSender.sendSMS(this, emergencyContactNumber, "SOS from $userName at $loc")
-            },
-            onFailure = {
-                println("❌ Failed to fetch location: ${it.message}")
+        // Request permissions on launch
+        val requestPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            val granted = permissions.entries.all { it.value }
+            if (!granted) {
+                Toast.makeText(this, "All permissions are required!", Toast.LENGTH_LONG).show()
             }
+        }
+
+        requestPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.SEND_SMS,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.READ_CONTACTS
+            )
         )
 
         setContent {
-            // You can create Composables for UI here if needed
+            Gram_seva_backendTheme {
+                Surface {
+                    SOSScreen()
+                }
+            }
         }
     }
 }

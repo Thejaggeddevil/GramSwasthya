@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">gram_seva_backend</string>
+    <string name="app_name">Gram_seva_backend"</string>
+    <string name="pick_emergency_contact">Pick Emergency Contact</string>
+    <string name="send_sos">Send SOS</string>
+    <string name="location_not_found">⚠️ Location not found</string>
+    <string name="sos_sent">📤 SOS Sent!</string>
+    <string name="english">English</string>
+    <string name="hindi">Hindi</string>
+    <string name="location_error">⚠️ Location fetch failed</string>
 </resources>
