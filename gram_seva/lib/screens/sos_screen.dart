@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +9,10 @@ import 'package:geocoding/geocoding.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
+import 'package:telephony/telephony.dart';
+import 'package:gram_seva/utils/responsive_helper.dart';
+import 'package:gram_seva/utils/sms_sender.dart';
+import 'emergency_contacts_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -828,6 +834,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Icons.location_on,
               userData!.village != null ? 'My Village' : 'Add Village',
             ),
+            _buildProfileItem(Icons.emergency, 'Emergency Contacts'),
             _buildProfileItem(Icons.settings, 'Settings'),
             _buildProfileItem(Icons.help, 'Help & Support'),
             _buildProfileItem(Icons.logout, 'Logout'),
@@ -853,6 +860,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             } else {
               _showAddVillageDialog();
             }
+          } else if (title == 'Emergency Contacts') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EmergencyContactsScreen(),
+              ),
+            );
           } else if (title == 'Logout') {
             _logout();
           }
@@ -965,5 +979,580 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
     }
+  }
+}
+
+class SOSScreen extends StatefulWidget {
+  const SOSScreen({super.key});
+
+  @override
+  State<SOSScreen> createState() => _SOSScreenState();
+}
+
+class _SOSScreenState extends State<SOSScreen> {
+  bool _isLoading = false;
+  bool _isSending = false;
+  String? _currentLocation;
+  UserModel? _userData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get();
+
+        if (doc.exists) {
+          setState(() {
+            _userData = UserModel.fromMap(doc.data()!);
+          });
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading user data: $e')));
+      }
+    } finally {
+      if (context.mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<String?> _getCurrentLocation() async {
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return 'Location services are disabled';
+      }
+
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return 'Location permissions are denied';
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        return 'Location permissions are permanently denied';
+      }
+
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // Get address from coordinates
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        return '${place.street}, ${place.locality}, ${place.administrativeArea}';
+      } else {
+        return 'Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}';
+      }
+    } catch (e) {
+      return 'Unable to get location: $e';
+    }
+  }
+
+  Future<void> _sendEmergencySMS() async {
+    if (_userData?.emergencyContacts.isEmpty ?? true) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No emergency contacts found. Please add contacts in your profile.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isSending = true);
+
+    try {
+      // Check SMS permissions and capability
+      final hasPermissions = await SmsSender.checkSmsPermissions();
+      final isCapable = await SmsSender.isSmsCapable();
+
+      if (!hasPermissions) {
+        throw Exception('SMS permissions not granted');
+      }
+
+      if (!isCapable && !kIsWeb && !Platform.isWindows) {
+        throw Exception('Device cannot send SMS');
+      }
+
+      // Send SOS message using the comprehensive SMS sender
+      final success = await SmsSender.sendSOSMessage(
+        emergencyContacts: _userData!.emergencyContacts,
+        userName: _userData!.fullName,
+        userPhone: _userData!.phoneNumber,
+        sendToAll: true,
+      );
+
+      if (success) {
+        if (context.mounted) {
+          // Show success message based on platform
+          if (kIsWeb || Platform.isWindows) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'SOS alert logged successfully! (SMS simulation for desktop)',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Emergency SOS sent to all contacts!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      } else {
+        throw Exception('Failed to send SOS message');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        String errorMessage = 'Error sending SOS';
+
+        if (e.toString().contains('permission')) {
+          errorMessage =
+              'SMS permissions not granted. Please enable SMS permissions in app settings.';
+        } else if (e.toString().contains('capable')) {
+          errorMessage =
+              'This device cannot send SMS. Please use a mobile device.';
+        } else if (e.toString().contains('network')) {
+          errorMessage =
+              'Network error. Please check your internet connection.';
+        } else {
+          errorMessage = 'Error sending SOS: ${e.toString()}';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _sendEmergencySMS(),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (context.mounted) {
+        setState(() => _isSending = false);
+      }
+    }
+  }
+
+  void _showSOSHistory() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('SOS History'),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 400,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: SmsSender.getSOSHistory(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return const Center(
+                      child: Text('Error loading SOS history'),
+                    );
+                  }
+
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+
+                  if (docs.isEmpty) {
+                    return const Center(child: Text('No SOS alerts found'));
+                  }
+
+                  return ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data() as Map<String, dynamic>;
+                      final timestamp = data['timestamp'] as Timestamp?;
+                      final location = data['location'] as String? ?? 'Unknown';
+                      final contacts = List<String>.from(
+                        data['contactsNotified'] ?? [],
+                      );
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: const Icon(
+                            Icons.emergency,
+                            color: Colors.red,
+                          ),
+                          title: Text(
+                            timestamp?.toDate().toString().substring(0, 19) ??
+                                'Unknown time',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Location: $location'),
+                              Text('Contacts: ${contacts.join(', ')}'),
+                            ],
+                          ),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
+                          onTap: () => _showSOSDetails(data),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showSOSDetails(Map<String, dynamic> data) {
+    final timestamp = data['timestamp'] as Timestamp?;
+    final location = data['location'] as String? ?? 'Unknown';
+    final contacts = List<String>.from(data['contactsNotified'] ?? []);
+    final message = data['message'] as String? ?? 'No message';
+    final status = data['status'] as String? ?? 'Unknown';
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('SOS Details'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Time: ${timestamp?.toDate().toString().substring(0, 19) ?? 'Unknown'}',
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Status: $status'),
+                  const SizedBox(height: 8),
+                  Text('Location: $location'),
+                  const SizedBox(height: 8),
+                  Text('Contacts Notified: ${contacts.join(', ')}'),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Message:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(message, style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final responsive = ResponsiveHelper(context);
+    final scaleFactor = responsive.scaleFactor;
+
+    return Scaffold(
+      backgroundColor: Colors.red[50],
+      appBar: AppBar(
+        title: Text(
+          'Emergency SOS',
+          style: TextStyle(fontSize: 20 * scaleFactor),
+        ),
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+      ),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: 600 * (responsive.isWeb ? 0.7 : 1.0),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24 * scaleFactor,
+                        vertical: 16 * scaleFactor,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Emergency Icon
+                          Container(
+                            padding: EdgeInsets.all(40 * scaleFactor),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.emergency,
+                              size: 100 * scaleFactor,
+                              color: Colors.red,
+                            ),
+                          ),
+                          SizedBox(height: 32 * scaleFactor),
+
+                          // Emergency Title
+                          Text(
+                            'EMERGENCY SOS',
+                            style: TextStyle(
+                              fontSize: 32 * scaleFactor,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red[800],
+                            ),
+                          ),
+                          SizedBox(height: 16 * scaleFactor),
+
+                          // Description
+                          Text(
+                            'Press the button below to send emergency alerts to all your saved contacts',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 18 * scaleFactor,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          SizedBox(height: 32 * scaleFactor),
+
+                          // Emergency Contacts Info
+                          if (_userData?.emergencyContacts.isNotEmpty ??
+                              false) ...[
+                            Container(
+                              padding: EdgeInsets.all(16 * scaleFactor),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Emergency Contacts',
+                                    style: TextStyle(
+                                      fontSize: 18 * scaleFactor,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green[800],
+                                    ),
+                                  ),
+                                  SizedBox(height: 8 * scaleFactor),
+                                  Text(
+                                    '${_userData!.emergencyContacts.length} contact(s) will be notified',
+                                    style: TextStyle(
+                                      fontSize: 16 * scaleFactor,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 24 * scaleFactor),
+                          ] else ...[
+                            Container(
+                              padding: EdgeInsets.all(16 * scaleFactor),
+                              decoration: BoxDecoration(
+                                color: Colors.orange[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.orange[300]!),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.warning,
+                                    color: Colors.orange[700],
+                                    size: 32 * scaleFactor,
+                                  ),
+                                  SizedBox(height: 8 * scaleFactor),
+                                  Text(
+                                    'No Emergency Contacts',
+                                    style: TextStyle(
+                                      fontSize: 18 * scaleFactor,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange[700],
+                                    ),
+                                  ),
+                                  SizedBox(height: 8 * scaleFactor),
+                                  Text(
+                                    'Please add emergency contacts in your profile',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16 * scaleFactor,
+                                      color: Colors.orange[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 24 * scaleFactor),
+                          ],
+
+                          // SOS Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 80 * scaleFactor,
+                            child: ElevatedButton(
+                              onPressed: _isSending ? null : _sendEmergencySMS,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                elevation: 8,
+                              ),
+                              child:
+                                  _isSending
+                                      ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: 24 * scaleFactor,
+                                            height: 24 * scaleFactor,
+                                            child:
+                                                const CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2,
+                                                ),
+                                          ),
+                                          SizedBox(width: 12 * scaleFactor),
+                                          Text(
+                                            'Sending...',
+                                            style: TextStyle(
+                                              fontSize: 20 * scaleFactor,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                      : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.emergency,
+                                            size: 32 * scaleFactor,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 12 * scaleFactor),
+                                          Text(
+                                            'SEND SOS ALERT',
+                                            style: TextStyle(
+                                              fontSize: 20 * scaleFactor,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                            ),
+                          ),
+                          SizedBox(height: 24 * scaleFactor),
+
+                          // SOS History Button
+                          TextButton.icon(
+                            onPressed: _showSOSHistory,
+                            icon: Icon(
+                              Icons.history,
+                              size: 20 * scaleFactor,
+                              color: Colors.grey[600],
+                            ),
+                            label: Text(
+                              'View SOS History',
+                              style: TextStyle(
+                                fontSize: 16 * scaleFactor,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ),
+
+                          // Warning Text
+                          Container(
+                            padding: EdgeInsets.all(16 * scaleFactor),
+                            decoration: BoxDecoration(
+                              color: Colors.red[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red[200]!),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Colors.red[700],
+                                  size: 24 * scaleFactor,
+                                ),
+                                SizedBox(height: 8 * scaleFactor),
+                                Text(
+                                  'Use this only in genuine emergencies',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16 * scaleFactor,
+                                    color: Colors.red[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+    );
   }
 }

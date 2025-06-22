@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -34,10 +36,42 @@ class _MainScreenState extends State<MainScreen> {
 
           if (doc.exists) {
             if (context.mounted) {
-              setState(() {
-                userData = UserModel.fromMap(doc.data()!);
-                isLoading = false;
-              });
+              try {
+                setState(() {
+                  userData = UserModel.fromMap(doc.data()!);
+                  isLoading = false;
+                });
+              } catch (parseError) {
+                // Handle parsing error for existing users without emergencyContacts
+                if (context.mounted) {
+                  setState(() {
+                    userData = UserModel(
+                      uid: user.uid,
+                      fullName:
+                          doc.data()?['fullName'] ?? user.displayName ?? 'User',
+                      phoneNumber:
+                          doc.data()?['phoneNumber'] ??
+                          user.phoneNumber ??
+                          'Not provided',
+                      email: doc.data()?['email'] ?? user.email ?? '',
+                      preferredLanguage:
+                          doc.data()?['preferredLanguage'] ?? 'English',
+                      profilePictureUrl: doc.data()?['profilePictureUrl'],
+                      village: doc.data()?['village'],
+                      latitude: doc.data()?['latitude']?.toDouble(),
+                      longitude: doc.data()?['longitude']?.toDouble(),
+                      emergencyContacts: List<String>.from(
+                        doc.data()?['emergencyContacts'] ?? [],
+                      ),
+                      createdAt: DateTime.parse(
+                        doc.data()?['createdAt'] ??
+                            DateTime.now().toIso8601String(),
+                      ),
+                    );
+                    isLoading = false;
+                  });
+                }
+              }
             }
           } else {
             if (context.mounted) {
@@ -197,7 +231,12 @@ class _MainScreenState extends State<MainScreen> {
                           Icons.emergency,
                           Colors.red,
                           () {
-                            // SOS action
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SOSScreen(),
+                              ),
+                            );
                           },
                         ),
                       ),

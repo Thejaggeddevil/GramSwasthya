@@ -8,6 +8,7 @@ class UserModel {
   final String? village;
   final double? latitude;
   final double? longitude;
+  final List<String> emergencyContacts;
   final DateTime createdAt;
 
   UserModel({
@@ -20,6 +21,7 @@ class UserModel {
     this.village,
     this.latitude,
     this.longitude,
+    this.emergencyContacts = const [],
     required this.createdAt,
   });
 
@@ -34,6 +36,7 @@ class UserModel {
       'village': village,
       'latitude': latitude,
       'longitude': longitude,
+      'emergencyContacts': emergencyContacts,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -49,6 +52,7 @@ class UserModel {
       village: map['village'],
       latitude: map['latitude']?.toDouble(),
       longitude: map['longitude']?.toDouble(),
+      emergencyContacts: List<String>.from(map['emergencyContacts'] ?? []),
       createdAt: DateTime.parse(
         map['createdAt'] ?? DateTime.now().toIso8601String(),
       ),

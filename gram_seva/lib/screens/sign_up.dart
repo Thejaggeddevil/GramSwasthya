@@ -1,10 +1,12 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gram_seva/utils/responsive_helper.dart';
 import '../models/user_model.dart';
-import 'main_screen.dart';
+import 'emergency_contacts_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -152,7 +154,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const MainScreen()),
+        MaterialPageRoute(
+          builder: (context) => const EmergencyContactsScreen(),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'signUpFailed'.tr();
@@ -215,6 +219,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'English',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Switch(
+                          value: _isEnglish,
+                          onChanged: (val) {
+                            _changeLanguage(val);
+                          },
+                          activeColor: Colors.green,
+                        ),
+                        Text(
+                          'हिन्दी',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8 * scaleFactor),
                     Text(
                       'Create Account'.tr(),
                       textAlign: TextAlign.center,

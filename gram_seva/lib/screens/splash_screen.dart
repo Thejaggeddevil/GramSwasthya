@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:gram_seva/screens/sign_up.dart';
 import 'package:gram_seva/screens/main_screen.dart';
-import 'package:gram_seva/screens/sos_screen.dart';
+//import 'package:gram_seva/screens/sos_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -99,63 +99,31 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.red[800],
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final double maxWidth = constraints.maxWidth;
-          double scaleFactor;
-
-          if (maxWidth < 600) {
-            // Phone
-            scaleFactor = 1.0;
-          } else if (maxWidth < 1200) {
-            // Tablet
-            scaleFactor = 1.5;
-          } else {
-            // Website
-            scaleFactor = 2.0;
-          }
-
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.health_and_safety,
-                  size: 80 * scaleFactor,
-                  color: Colors.white,
-                ),
-                SizedBox(height: 20 * scaleFactor),
-                Text(
-                  'GramaSwasthya',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28 * scaleFactor,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 8 * scaleFactor),
-                Text(
-                  'Rural SOS & Health Alert',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16 * scaleFactor,
-                    color: Colors.white70,
-                  ),
-                ),
-                SizedBox(height: 40 * scaleFactor),
-                SizedBox(
-                  width: 30 * scaleFactor,
-                  height: 30 * scaleFactor,
-                  child: const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    strokeWidth: 4.0,
-                  ),
-                ),
-              ],
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.health_and_safety, size: 80, color: Colors.white),
+            SizedBox(height: 20),
+            Text(
+              'GramaSwasthya',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          );
-        },
+            SizedBox(height: 8),
+            Text(
+              'Rural SOS & Health Alert',
+              style: TextStyle(fontSize: 16, color: Colors.white70),
+            ),
+            SizedBox(height: 40),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ],
+        ),
       ),
     );
   }
