@@ -1,15 +1,37 @@
+# Gradle
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDEs
+.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+*.ipr
+*.iws
+
+# Local config
 local.properties
+*.keystore
+*.jks
+
+# Firebase
+**/google-services.json
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Kotlin compile
+*.class
+*.jar
+*.war
+*.apk
+*.ap_  # Android intermediate package
+*.dex  # Dalvik Executable
+
+# Caches
+.cxx/
+.cache/
