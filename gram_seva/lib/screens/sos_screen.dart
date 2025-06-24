@@ -9,7 +9,7 @@ import 'package:geocoding/geocoding.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
-import 'package:telephony/telephony.dart';
+
 import 'package:gram_seva/utils/responsive_helper.dart';
 import 'package:gram_seva/utils/kotlin_backend_service.dart';
 import 'emergency_contacts_screen.dart';
@@ -767,89 +767,184 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-
-    if (userData == null) {
-      return const Center(child: Text('User data not found'));
-    }
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Profile Picture with tap functionality
-            GestureDetector(
-              onTap: _showImagePickerDialog,
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage:
-                        _selectedImage != null
-                            ? FileImage(_selectedImage!)
-                            : (userData!.profilePictureUrl != null
-                                ? NetworkImage(userData!.profilePictureUrl!)
-                                    as ImageProvider
-                                : const NetworkImage(
-                                  'https://randomuser.me/api/portraits/men/1.jpg',
-                                )),
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      body: Stack(
+        children: [
+          // Header with curve
+          Container(
+            height: 180,
+            decoration: const BoxDecoration(
+              color: Color(0xFF43A047),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
+              ),
+            ),
+          ),
+          // Profile content
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 100),
+                // Profile picture
+                Center(
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Colors.white,
+                          backgroundImage:
+                              _selectedImage != null
+                                  ? FileImage(_selectedImage!)
+                                  : (userData!.profilePictureUrl != null
+                                      ? NetworkImage(
+                                            userData!.profilePictureUrl!,
+                                          )
+                                          as ImageProvider
+                                      : const NetworkImage(
+                                        'https://randomuser.me/api/portraits/men/1.jpg',
+                                      )),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _showImagePickerDialog,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 16,
-                      ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  userData!.fullName,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  userData!.email,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  userData!.phoneNumber,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[700],
+                  ),
+                ),
+                if (userData!.village != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Village: ${userData!.village}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[700],
                     ),
                   ),
                 ],
-              ),
+                const SizedBox(height: 18),
+                // Profile actions
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    children: [
+                      _buildProfileActionCard(
+                        Icons.person,
+                        'Personal Details',
+                        theme,
+                      ),
+                      _buildProfileActionCard(
+                        Icons.location_on,
+                        userData!.village != null
+                            ? 'My Village'
+                            : 'Add Village',
+                        theme,
+                      ),
+                      _buildProfileActionCard(
+                        Icons.emergency,
+                        'Emergency Contacts',
+                        theme,
+                      ),
+                      _buildProfileActionCard(
+                        Icons.settings,
+                        'Settings',
+                        theme,
+                      ),
+                      _buildProfileActionCard(
+                        Icons.help,
+                        'Help & Support',
+                        theme,
+                      ),
+                      _buildProfileActionCard(
+                        Icons.logout,
+                        'Logout',
+                        theme,
+                        color: Colors.redAccent,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              userData!.fullName,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text('Email: ${userData!.email}'),
-            const SizedBox(height: 4),
-            Text('Phone: ${userData!.phoneNumber}'),
-            const SizedBox(height: 4),
-            Text('Language: ${userData!.preferredLanguage}'),
-            if (userData!.village != null) ...[
-              const SizedBox(height: 4),
-              Text('Village: ${userData!.village}'),
-            ],
-            const SizedBox(height: 24),
-            _buildProfileItem(Icons.person, 'Personal Details'),
-            _buildProfileItem(
-              Icons.location_on,
-              userData!.village != null ? 'My Village' : 'Add Village',
-            ),
-            _buildProfileItem(Icons.emergency, 'Emergency Contacts'),
-            _buildProfileItem(Icons.settings, 'Settings'),
-            _buildProfileItem(Icons.help, 'Help & Support'),
-            _buildProfileItem(Icons.logout, 'Logout'),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildProfileItem(IconData icon, String title) {
+  Widget _buildProfileActionCard(
+    IconData icon,
+    String title,
+    ThemeData theme, {
+    Color? color,
+  }) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
+        leading: CircleAvatar(
+          backgroundColor: (color ?? theme.primaryColor).withOpacity(0.15),
+          child: Icon(icon, color: color ?? theme.primaryColor),
+        ),
+        title: Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: () {
           if (title == 'Personal Details') {
@@ -992,11 +1087,11 @@ class SOSScreen extends StatefulWidget {
 class _SOSScreenState extends State<SOSScreen> {
   bool _isLoading = false;
   bool _isSending = false;
-  String? _currentLocation;
+  //String? _currentLocation;
   UserModel? _userData;
   final TextEditingController _customMessageController =
       TextEditingController();
-  bool _useCustomMessage = false;
+  final bool _useCustomMessage = false;
 
   @override
   void initState() {

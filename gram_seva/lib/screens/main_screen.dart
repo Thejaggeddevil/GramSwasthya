@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../utils/kotlin_backend_service.dart';
 import 'sos_screen.dart';
+import 'ai_health_assistant_screen.dart';
+import 'dart:math' as math;
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -127,35 +129,102 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.green[50],
-      appBar: AppBar(
-        backgroundColor: Colors.green[600],
-        elevation: 0,
-        title: const Text(
-          'Gram Alert Seva Doot',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications, color: Colors.white),
-            onPressed: () {
-              // Notification action
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.person, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
-              );
-            },
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFFF8F9FB),
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // Modern Gradient App Bar with Curve
+            Stack(
+              children: [
+                // Gradient background with curve
+                ClipPath(
+                  clipper: _BottomCurveClipper(),
+                  child: Container(
+                    height: 180,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF4F8FFF), Color(0xFF8F5FFF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                  ),
+                ),
+                // App bar content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 48, 24, 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hi, ${userData?.fullName ?? 'User'} 👋',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 26,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Your Health & Alert Dashboard',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        children: [
+                          Stack(
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.notifications,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                                onPressed: () {},
+                              ),
+                              Positioned(
+                                right: 10,
+                                top: 10,
+                                child: Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          CircleAvatar(
+                            backgroundColor: Colors.white,
+                            radius: 22,
+                            child: Icon(
+                              Icons.person,
+                              color: Color(0xFF8F5FFF),
+                              size: 28,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
             // Welcome Section
             Container(
               width: double.infinity,
@@ -206,9 +275,7 @@ class _MainScreenState extends State<MainScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
             // Quick Actions
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -220,7 +287,7 @@ class _MainScreenState extends State<MainScreen> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Color(0xFF22223B),
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -230,7 +297,7 @@ class _MainScreenState extends State<MainScreen> {
                         child: _buildQuickActionCard(
                           'SOS Alert',
                           Icons.emergency,
-                          Colors.red,
+                          Color(0xFFE63946),
                           () {
                             _showSOSOptions();
                           },
@@ -241,7 +308,7 @@ class _MainScreenState extends State<MainScreen> {
                         child: _buildQuickActionCard(
                           'Health',
                           Icons.local_hospital,
-                          Colors.pink,
+                          Color(0xFF43AA8B),
                           () {
                             // Health action
                           },
@@ -256,7 +323,7 @@ class _MainScreenState extends State<MainScreen> {
                         child: _buildQuickActionCard(
                           'Agriculture',
                           Icons.agriculture,
-                          Colors.green,
+                          Color(0xFF4F8FFF),
                           () {
                             // Agriculture action
                           },
@@ -267,7 +334,7 @@ class _MainScreenState extends State<MainScreen> {
                         child: _buildQuickActionCard(
                           'Education',
                           Icons.school,
-                          Colors.blue,
+                          Color(0xFF8F5FFF),
                           () {
                             // Education action
                           },
@@ -276,6 +343,37 @@ class _MainScreenState extends State<MainScreen> {
                     ],
                   ),
                 ],
+              ),
+            ),
+            // Weather Card (now below quick actions)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 3,
+                color: const Color(0xFFE3E8FF),
+                child: ListTile(
+                  leading: Icon(
+                    Icons.wb_sunny,
+                    color: Color(0xFFFFB300),
+                    size: 36,
+                  ),
+                  title: Text(
+                    '32°C, Sunny',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Color(0xFF4F8FFF),
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Your Location',
+                    style: TextStyle(color: Color(0xFF5C5F66)),
+                  ),
+                  trailing: Icon(Icons.location_on, color: Color(0xFFE63946)),
+                ),
               ),
             ),
 
@@ -377,6 +475,19 @@ class _MainScreenState extends State<MainScreen> {
             const SizedBox(height: 30),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AIHealthAssistantScreen(),
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFF4F8FFF),
+        child: const Icon(Icons.smart_toy, color: Colors.white),
+        tooltip: 'Ask AI Health Assistant',
       ),
     );
   }
@@ -632,4 +743,25 @@ class _MainScreenState extends State<MainScreen> {
       Navigator.pop(context);
     }
   }
+}
+
+// Modern curve clipper for app bar
+class _BottomCurveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 40);
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height,
+      size.width,
+      size.height - 40,
+    );
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

@@ -97,31 +97,64 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.red[800],
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.health_and_safety, size: 80, color: Colors.white),
-            SizedBox(height: 20),
-            Text(
-              'GramaSwasthya',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF43A047), Color(0xFF1976D2)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(24),
+                child: const Icon(
+                  Icons.health_and_safety,
+                  size: 80,
+                  color: Color(0xFF1976D2),
+                ),
               ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Rural SOS & Health Alert',
-              style: TextStyle(fontSize: 16, color: Colors.white70),
-            ),
-            SizedBox(height: 40),
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ],
+              const SizedBox(height: 32),
+              const Text(
+                'GramaSwasthya',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Rural SOS & Health Alert',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 48),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ],
+          ),
         ),
       ),
     );

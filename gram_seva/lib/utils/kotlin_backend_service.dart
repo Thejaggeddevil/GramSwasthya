@@ -94,7 +94,6 @@ class KotlinBackendService {
     }
   }
 
-  /// Pick contact using Kotlin backend
   static Future<Map<String, String>?> pickContact() async {
     try {
       if (kIsWeb || Platform.isWindows) {
