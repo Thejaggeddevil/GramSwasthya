@@ -769,154 +769,246 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: Stack(
+      backgroundColor: const Color(0xFFF8F9FB),
+      body: Column(
         children: [
-          // Header with curve
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              color: Color(0xFF43A047),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(32),
-                bottomRight: Radius.circular(32),
+          // Modern Gradient App Bar with Curve
+          Stack(
+            children: [
+              ClipPath(
+                clipper: _BottomCurveClipper(),
+                child: Container(
+                  height: 160,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF4F8FFF), Color(0xFF8F5FFF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-          // Profile content
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 100),
-                // Profile picture
-                Center(
-                  child: Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 48, 24, 0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Profile',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                              letterSpacing: 0.5,
                             ),
-                          ],
-                        ),
-                        child: CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.white,
-                          backgroundImage:
-                              _selectedImage != null
-                                  ? FileImage(_selectedImage!)
-                                  : (userData!.profilePictureUrl != null
-                                      ? NetworkImage(
-                                            userData!.profilePictureUrl!,
-                                          )
-                                          as ImageProvider
-                                      : const NetworkImage(
-                                        'https://randomuser.me/api/portraits/men/1.jpg',
-                                      )),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'Your Details',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _showImagePickerDialog,
+                      child: CircleAvatar(
+                        backgroundColor: Colors.white,
+                        radius: 22,
+                        child: Icon(
+                          Icons.person,
+                          color: Color(0xFF8F5FFF),
+                          size: 28,
                         ),
                       ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: _showImagePickerDialog,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  // Profile Picture (large, overlapping)
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.10),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 54,
+                            backgroundColor: Colors.white,
+                            backgroundImage:
+                                _selectedImage != null
+                                    ? FileImage(_selectedImage!)
+                                    : (userData!.profilePictureUrl != null
+                                        ? NetworkImage(
+                                              userData!.profilePictureUrl!,
+                                            )
+                                            as ImageProvider
+                                        : const NetworkImage(
+                                          'https://randomuser.me/api/portraits/men/1.jpg',
+                                        )),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _showImagePickerDialog,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF8F5FFF),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  userData!.fullName,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  userData!.email,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[700],
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  userData!.phoneNumber,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[700],
-                  ),
-                ),
-                if (userData!.village != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Village: ${userData!.village}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[700],
+                      ],
                     ),
                   ),
-                ],
-                const SizedBox(height: 18),
-                // Profile actions
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    children: [
-                      _buildProfileActionCard(
-                        Icons.person,
-                        'Personal Details',
-                        theme,
+                  const SizedBox(height: 18),
+                  // User Info
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 2,
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 18,
+                        horizontal: 18,
                       ),
-                      _buildProfileActionCard(
-                        Icons.location_on,
-                        userData!.village != null
-                            ? 'My Village'
-                            : 'Add Village',
-                        theme,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.person, color: Color(0xFF8F5FFF)),
+                              const SizedBox(width: 10),
+                              Text(
+                                userData!.fullName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Icon(Icons.email, color: Color(0xFF4F8FFF)),
+                              const SizedBox(width: 10),
+                              Text(
+                                userData!.email,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Icon(Icons.phone, color: Color(0xFF43AA8B)),
+                              const SizedBox(width: 10),
+                              Text(
+                                userData!.phoneNumber,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                          if (userData!.village != null) ...[
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on,
+                                  color: Color(0xFFE63946),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  userData!.village!,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Icon(Icons.language, color: Color(0xFF1976D2)),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Language: ${userData!.preferredLanguage}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      _buildProfileActionCard(
-                        Icons.emergency,
-                        'Emergency Contacts',
-                        theme,
-                      ),
-                      _buildProfileActionCard(
-                        Icons.settings,
-                        'Settings',
-                        theme,
-                      ),
-                      _buildProfileActionCard(
-                        Icons.help,
-                        'Help & Support',
-                        theme,
-                      ),
-                      _buildProfileActionCard(
-                        Icons.logout,
-                        'Logout',
-                        theme,
-                        color: Colors.redAccent,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-              ],
+                  const SizedBox(height: 18),
+                  // Profile Actions
+                  _buildProfileActionCard(
+                    Icons.person,
+                    'Personal Details',
+                    theme,
+                  ),
+                  _buildProfileActionCard(
+                    Icons.location_on,
+                    userData!.village != null ? 'My Village' : 'Add Village',
+                    theme,
+                  ),
+                  _buildProfileActionCard(
+                    Icons.emergency,
+                    'Emergency Contacts',
+                    theme,
+                  ),
+                  _buildProfileActionCard(Icons.settings, 'Settings', theme),
+                  _buildProfileActionCard(Icons.help, 'Help & Support', theme),
+                  _buildProfileActionCard(
+                    Icons.logout,
+                    'Logout',
+                    theme,
+                    color: Colors.redAccent,
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
           ),
         ],
@@ -1075,6 +1167,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
     }
   }
+}
+
+// Modern curve clipper for app bar
+class _BottomCurveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 40);
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height,
+      size.width,
+      size.height - 40,
+    );
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class SOSScreen extends StatefulWidget {

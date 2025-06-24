@@ -7,7 +7,12 @@ import '../models/user_model.dart';
 import '../utils/kotlin_backend_service.dart';
 import 'sos_screen.dart';
 import 'ai_health_assistant_screen.dart';
+import 'health_alert_board_screen.dart';
+import 'medicine_reminders_screen.dart';
 import 'dart:math' as math;
+import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
+import 'dart:convert';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,11 +24,15 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   UserModel? userData;
   bool isLoading = true;
+  String? _weatherDescription;
+  double? _temperature;
+  bool _fetchingWeather = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _fetchWeather();
   }
 
   Future<void> _loadUserData() async {
@@ -40,6 +49,7 @@ class _MainScreenState extends State<MainScreen> {
           if (doc.exists) {
             if (context.mounted) {
               try {
+                if (!mounted) return;
                 setState(() {
                   userData = UserModel.fromMap(doc.data()!);
                   isLoading = false;
@@ -47,6 +57,7 @@ class _MainScreenState extends State<MainScreen> {
               } catch (parseError) {
                 // Handle parsing error for existing users without emergencyContacts
                 if (context.mounted) {
+                  if (!mounted) return;
                   setState(() {
                     userData = UserModel(
                       uid: user.uid,
@@ -78,6 +89,7 @@ class _MainScreenState extends State<MainScreen> {
             }
           } else {
             if (context.mounted) {
+              if (!mounted) return;
               setState(() {
                 userData = UserModel(
                   uid: user.uid,
@@ -93,6 +105,7 @@ class _MainScreenState extends State<MainScreen> {
           }
         } catch (firestoreError) {
           if (context.mounted) {
+            if (!mounted) return;
             setState(() {
               userData = UserModel(
                 uid: user.uid,
@@ -108,6 +121,7 @@ class _MainScreenState extends State<MainScreen> {
         }
       } else {
         if (context.mounted) {
+          if (!mounted) return;
           setState(() {
             isLoading = false;
           });
@@ -115,10 +129,68 @@ class _MainScreenState extends State<MainScreen> {
       }
     } catch (e) {
       if (context.mounted) {
+        if (!mounted) return;
         setState(() {
           isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchWeather() async {
+    setState(() => _fetchingWeather = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        print('Location services disabled');
+        if (!mounted) return;
+        setState(() => _fetchingWeather = false);
+        return;
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          print('Location permission denied');
+          if (!mounted) return;
+          setState(() => _fetchingWeather = false);
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        print('Location permission permanently denied');
+        if (!mounted) return;
+        setState(() => _fetchingWeather = false);
+        return;
+      }
+      Position pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      print('Got position: lat=${pos.latitude}, lon=${pos.longitude}');
+      // WeatherAPI.com integration
+      const apiKey = '13a02c5ed55e4267ab6122706252406';
+      final url =
+          'https://api.weatherapi.com/v1/current.json?key=$apiKey&q=${pos.latitude},${pos.longitude}';
+      print('WeatherAPI URL: $url');
+      final response = await http.get(Uri.parse(url));
+      print('WeatherAPI response: ${response.statusCode} ${response.body}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (!mounted) return;
+        setState(() {
+          _temperature = data['current']['temp_c']?.toDouble();
+          _weatherDescription = data['current']['condition']['text'];
+          _fetchingWeather = false;
+        });
+      } else {
+        print('WeatherAPI error: ${response.statusCode}');
+        if (!mounted) return;
+        setState(() => _fetchingWeather = false);
+      }
+    } catch (e) {
+      print('Weather fetch error: $e');
+      if (!mounted) return;
+      setState(() => _fetchingWeather = false);
     }
   }
 
@@ -208,13 +280,23 @@ class _MainScreenState extends State<MainScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 22,
-                            child: Icon(
-                              Icons.person,
-                              color: Color(0xFF8F5FFF),
-                              size: 28,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ProfileScreen(),
+                                ),
+                              );
+                            },
+                            child: CircleAvatar(
+                              backgroundColor: Colors.white,
+                              radius: 22,
+                              child: Icon(
+                                Icons.person,
+                                color: Color(0xFF8F5FFF),
+                                size: 28,
+                              ),
                             ),
                           ),
                         ],
@@ -225,56 +307,7 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            // Welcome Section
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.green[600],
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Welcome back,',
-                    style: TextStyle(color: Colors.green[100], fontSize: 16),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    userData?.fullName ?? 'User',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (userData?.village != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          color: Colors.green[100],
-                          size: 16,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          userData!.village!,
-                          style: TextStyle(
-                            color: Colors.green[100],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
+
             const SizedBox(height: 20),
             // Quick Actions
             Padding(
@@ -306,21 +339,6 @@ class _MainScreenState extends State<MainScreen> {
                       const SizedBox(width: 15),
                       Expanded(
                         child: _buildQuickActionCard(
-                          'Health',
-                          Icons.local_hospital,
-                          Color(0xFF43AA8B),
-                          () {
-                            // Health action
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildQuickActionCard(
                           'Agriculture',
                           Icons.agriculture,
                           Color(0xFF4F8FFF),
@@ -337,6 +355,24 @@ class _MainScreenState extends State<MainScreen> {
                           Color(0xFF8F5FFF),
                           () {
                             // Education action
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: _buildQuickActionCard(
+                          'Medicine Reminders',
+                          Icons.medication,
+                          Color(0xFF43AA8B),
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        const MedicineRemindersScreen(),
+                              ),
+                            );
                           },
                         ),
                       ),
@@ -360,19 +396,27 @@ class _MainScreenState extends State<MainScreen> {
                     color: Color(0xFFFFB300),
                     size: 36,
                   ),
-                  title: Text(
-                    '32°C, Sunny',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: Color(0xFF4F8FFF),
-                    ),
-                  ),
+                  title:
+                      _fetchingWeather
+                          ? const Text('Loading weather...')
+                          : _temperature != null
+                          ? Text(
+                            '${_temperature!.toStringAsFixed(1)}°C, ${_weatherDescription ?? ''}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Color(0xFF4F8FFF),
+                            ),
+                          )
+                          : const Text('Weather unavailable'),
                   subtitle: Text(
-                    'Your Location',
-                    style: TextStyle(color: Color(0xFF5C5F66)),
+                    userData?.village ?? 'Your Location',
+                    style: const TextStyle(color: Color(0xFF5C5F66)),
                   ),
-                  trailing: Icon(Icons.location_on, color: Color(0xFFE63946)),
+                  trailing: const Icon(
+                    Icons.location_on,
+                    color: Color(0xFFE63946),
+                  ),
                 ),
               ),
             ),
@@ -394,14 +438,6 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  _buildAlertCard(
-                    'Weather Warning',
-                    'Heavy rainfall expected in next 24 hours',
-                    Icons.cloud,
-                    Colors.blue,
-                    '2 hours ago',
-                  ),
-                  const SizedBox(height: 10),
                   _buildAlertCard(
                     'Crop Advisory',
                     'Apply fertilizers for wheat crops',

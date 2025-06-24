@@ -102,7 +102,7 @@ class _SplashScreenState extends State<SplashScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF43A047), Color(0xFF1976D2)],
+            colors: [Color(0xFF4F8FFF), Color(0xFF8F5FFF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -127,7 +127,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: const Icon(
                   Icons.health_and_safety,
                   size: 80,
-                  color: Color(0xFF1976D2),
+                  color: Color(0xFF8F5FFF),
                 ),
               ),
               const SizedBox(height: 32),

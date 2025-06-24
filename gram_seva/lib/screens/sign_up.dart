@@ -24,7 +24,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _isEnglish = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -36,23 +35,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {
-          _isEnglish = context.locale == const Locale('en');
+          _obscurePassword = true;
+          _obscureConfirmPassword = true;
         });
-      }
-    });
-  }
-
-  Future<void> _changeLanguage(bool isEnglish) async {
-    final newLocale = isEnglish ? const Locale('en') : const Locale('hi');
-    // Use post-frame callback to avoid the inherited widget error
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (mounted) {
-        await context.setLocale(newLocale);
-        if (mounted) {
-          setState(() {
-            _isEnglish = isEnglish;
-          });
-        }
       }
     });
   }
@@ -63,16 +48,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Please enter your full name')));
+        ).showSnackBar(SnackBar(content: Text('pleaseEnterFullName'.tr())));
       }
       return;
     }
 
     if (_phoneNumberController.text.trim().isEmpty) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please enter your phone number')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('pleaseEnterPhoneNumber'.tr())));
       }
       return;
     }
@@ -81,7 +66,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Please enter your email')));
+        ).showSnackBar(SnackBar(content: Text('pleaseEnterEmail'.tr())));
       }
       return;
     }
@@ -90,7 +75,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Please enter a password')));
+        ).showSnackBar(SnackBar(content: Text('pleaseEnterPassword'.tr())));
       }
       return;
     }
@@ -129,7 +114,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
           fullName: _fullNameController.text.trim(),
           phoneNumber: _phoneNumberController.text.trim(),
           email: _emailController.text.trim(),
-          preferredLanguage: _isEnglish ? 'English' : 'Hindi',
+          preferredLanguage:
+              context.locale.languageCode == 'en' ? 'English' : 'Hindi',
           createdAt: DateTime.now(),
         );
 
@@ -151,7 +137,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Account created successfully!')));
+      ).showSnackBar(SnackBar(content: Text('accountCreated'.tr())));
 
       Navigator.pushReplacement(
         context,
@@ -205,7 +191,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF43A047), Color(0xFF1976D2)],
+            colors: [Color(0xFF4F8FFF), Color(0xFF8F5FFF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -217,6 +203,36 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Language dropdown at the top
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: DropdownButton<Locale>(
+                      value: context.locale,
+                      icon: const Icon(Icons.language, color: Colors.white),
+                      dropdownColor: const Color(0xFF8F5FFF),
+                      underline: Container(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: Locale('en'),
+                          child: Text('English'),
+                        ),
+                        DropdownMenuItem(
+                          value: Locale('hi'),
+                          child: Text('हिन्दी'),
+                        ),
+                      ],
+                      onChanged: (locale) async {
+                        if (locale != null) {
+                          await context.setLocale(locale);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   const SizedBox(height: 24),
                   Container(
                     decoration: BoxDecoration(
@@ -234,12 +250,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: const Icon(
                       Icons.person_add_alt_1,
                       size: 60,
-                      color: Color(0xFF43A047),
+                      color: Color(0xFF8F5FFF),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Create Account',
+                  Text(
+                    'createAccount'.tr(),
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -247,8 +263,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Sign up to get started',
+                  Text(
+                    'signUpToGetStarted'.tr(),
                     style: TextStyle(fontSize: 16, color: Colors.white70),
                   ),
                   const SizedBox(height: 32),
@@ -263,180 +279,122 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         key: _formKey,
                         child: Column(
                           children: [
-                            TextFormField(
+                            _modernTextField(
                               controller: _fullNameController,
-                              decoration: InputDecoration(
-                                labelText: 'Full Name',
-                                prefixIcon: const Icon(
-                                  Icons.person,
-                                  color: Color(0xFF43A047),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
+                              label: 'fullName'.tr(),
+                              icon: Icons.person,
+                              keyboardType: TextInputType.name,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter your full name';
+                                  return 'pleaseEnterFullName'.tr();
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 16),
-                            TextFormField(
+                            _modernTextField(
                               controller: _phoneNumberController,
-                              decoration: InputDecoration(
-                                labelText: 'Phone Number',
-                                prefixIcon: const Icon(
-                                  Icons.phone,
-                                  color: Color(0xFF43A047),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
+                              label: 'phoneNumber'.tr(),
+                              icon: Icons.phone,
                               keyboardType: TextInputType.phone,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter your phone number';
+                                  return 'pleaseEnterPhoneNumber'.tr();
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 16),
-                            TextFormField(
+                            _modernTextField(
                               controller: _emailController,
-                              decoration: InputDecoration(
-                                labelText: 'Email',
-                                prefixIcon: const Icon(
-                                  Icons.email_outlined,
-                                  color: Color(0xFF43A047),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
+                              label: 'email'.tr(),
+                              icon: Icons.email_outlined,
                               keyboardType: TextInputType.emailAddress,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter your email';
+                                  return 'pleaseEnterEmail'.tr();
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 16),
-                            TextFormField(
+                            _modernTextField(
                               controller: _passwordController,
+                              label: 'password'.tr(),
+                              icon: Icons.lock_outline,
                               obscureText: _obscurePassword,
-                              decoration: InputDecoration(
-                                labelText: 'Password',
-                                prefixIcon: const Icon(
-                                  Icons.lock_outline,
-                                  color: Color(0xFF43A047),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: Color(0xFF8F5FFF),
                                 ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
-                                    color: const Color(0xFF43A047),
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscurePassword = !_obscurePassword;
-                                    });
-                                  },
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter a password';
+                                  return 'pleaseEnterPassword'.tr();
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 16),
-                            TextFormField(
+                            _modernTextField(
                               controller: _confirmPasswordController,
+                              label: 'confirmPassword'.tr(),
+                              icon: Icons.lock_outline,
                               obscureText: _obscureConfirmPassword,
-                              decoration: InputDecoration(
-                                labelText: 'Confirm Password',
-                                prefixIcon: const Icon(
-                                  Icons.lock_outline,
-                                  color: Color(0xFF43A047),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: Color(0xFF8F5FFF),
                                 ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureConfirmPassword
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
-                                    color: const Color(0xFF43A047),
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscureConfirmPassword =
-                                          !_obscureConfirmPassword;
-                                    });
-                                  },
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
+                                  });
+                                },
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please confirm your password';
+                                  return 'pleaseConfirmPassword'.tr();
                                 }
                                 if (value != _passwordController.text) {
-                                  return 'Passwords do not match';
+                                  return 'passwordsDontMatch'.tr();
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 16),
-                            // Language toggle
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'English',
-                                  style: TextStyle(fontWeight: FontWeight.w500),
-                                ),
-                                Switch(
-                                  value: _isEnglish,
-                                  activeColor: const Color(0xFF43A047),
-                                  onChanged: (val) => _changeLanguage(val),
-                                ),
-                                const Text(
-                                  'हिन्दी',
-                                  style: TextStyle(fontWeight: FontWeight.w500),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 18),
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
                                 onPressed: _isLoading ? null : _signUp,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF43A047),
+                                  backgroundColor: const Color(0xFF8F5FFF),
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 16,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
+                                  elevation: 2,
                                 ),
                                 child:
                                     _isLoading
                                         ? const CircularProgressIndicator(
                                           color: Colors.white,
                                         )
-                                        : const Text(
-                                          'Sign Up',
+                                        : Text(
+                                          'signUp'.tr(),
                                           style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -448,8 +406,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text(
-                                  'Already have an account? ',
+                                Text(
+                                  'alreadyHaveAccount'.tr(),
                                   style: TextStyle(color: Colors.black54),
                                 ),
                                 TextButton(
@@ -462,10 +420,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       ),
                                     );
                                   },
-                                  child: const Text(
-                                    'Sign in',
+                                  child: Text(
+                                    'signIn'.tr(),
                                     style: TextStyle(
-                                      color: Color(0xFF43A047),
+                                      color: Color(0xFF8F5FFF),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -482,6 +440,43 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _modernTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      validator: validator,
+      style: const TextStyle(fontSize: 16),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: Color(0xFF8F5FFF)),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: const Color(0xFFF3F4FB),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 18,
+          horizontal: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF8F5FFF), width: 2),
         ),
       ),
     );
