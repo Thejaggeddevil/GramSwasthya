@@ -29,7 +29,7 @@ fun SOSScreen() {
     val context = LocalContext.current
     var selectedContact by remember { mutableStateOf<UserContact?>(null) }
     var emergencyContact by remember {
-        mutableStateOf(UserContact("+919876543210", "Default Emergency"))
+        mutableStateOf(UserContact("+919876543210", "Default Emergency","abc@gmail.com"))
     }
     var language by remember { mutableStateOf("English") }
 
@@ -44,7 +44,8 @@ fun SOSScreen() {
                     it,
                     arrayOf(
                         ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                        ContactsContract.CommonDataKinds.Phone.NUMBER
+                        ContactsContract.CommonDataKinds.Phone.NUMBER,
+                        ContactsContract.CommonDataKinds.Email.ADDRESS
                     ),
                     null,
                     null,
@@ -53,8 +54,9 @@ fun SOSScreen() {
                 cursor?.moveToFirst()
                 val name = cursor?.getString(0) ?: "Unknown"
                 val number = cursor?.getString(1) ?: ""
-                selectedContact = UserContact(number, name)
-                FirestoreManager.saveContact(UserContact(number, name))
+                val email = cursor?.getString(2) ?: ""
+                selectedContact = UserContact(number, name,email)
+                FirestoreManager.saveContact(UserContact(number, name,email))
                 cursor?.close()
             }
         }
@@ -96,6 +98,7 @@ fun SOSScreen() {
                         FirestoreManager.saveSOS(
                             userName = selectedContact?.name ?: "Anonymous",
                             phoneNumber = selectedContact?.phone ?: "Unknown",
+                            email = selectedContact?.email ?: "Unknown",
                             latitude = location.latitude,
                             longitude = location.longitude,
                             language = language

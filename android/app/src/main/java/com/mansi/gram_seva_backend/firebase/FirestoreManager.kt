@@ -10,6 +10,7 @@ object FirestoreManager {
     fun saveSOS(
         userName: String,
         phoneNumber: String,
+        email:String,
         latitude: Double,
         longitude: Double,
         language: String
@@ -17,6 +18,7 @@ object FirestoreManager {
         val sosData = hashMapOf(
             "userName" to userName,
             "phoneNumber" to phoneNumber,
+            "email" to "email",
             "latitude" to latitude,
             "longitude" to longitude,
             "language" to language,
@@ -28,7 +30,7 @@ object FirestoreManager {
 
     fun saveContact(contact: UserContact) {
         db.collection("emergency_contacts")
-            .add(hashMapOf("name" to contact.name, "phone" to contact.phone))
+            .add(hashMapOf("name" to contact.name, "phone" to contact.phone,"e-mail" to contact.email))
     }
 
     fun saveUserLanguage(language: String) {
