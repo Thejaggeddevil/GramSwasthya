@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, prefer_is_empty
+// ignore_for_file: use_build_context_synchronously, prefer_is_empty, unused_field, deprecated_member_use, unused_local_variable
 
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';

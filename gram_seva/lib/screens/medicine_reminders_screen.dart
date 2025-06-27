@@ -25,7 +25,7 @@ class MedicineReminder {
 }
 
 class MedicineRemindersScreen extends StatefulWidget {
-  const MedicineRemindersScreen({Key? key}) : super(key: key);
+  const MedicineRemindersScreen({super.key});
 
   @override
   State<MedicineRemindersScreen> createState() =>
@@ -251,7 +251,7 @@ class _MedicineRemindersScreenState extends State<MedicineRemindersScreen> {
                         ),
                         title: Text(reminder.medicine),
                         subtitle: Text(
-                          'Time: ' + reminder.time.format(context),
+                          'Time: ${reminder.time.format(context)}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -275,8 +275,8 @@ class _MedicineRemindersScreenState extends State<MedicineRemindersScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addOrEditReminder(),
         backgroundColor: const Color(0xFF43AA8B),
-        child: const Icon(Icons.add),
         tooltip: 'add_reminder'.tr(),
+        child: const Icon(Icons.add),
       ),
     );
   }

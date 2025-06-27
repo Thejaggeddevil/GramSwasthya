@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -99,7 +101,7 @@ class _HealthAlertBoardScreenState extends State<HealthAlertBoardScreen> {
               radiusKm: 20, // Show alerts within 20km
             );
           }).toList();
-      // Filter by proximity
+
       final visibleAlerts =
           allAlerts.where((alert) {
             final double dist =

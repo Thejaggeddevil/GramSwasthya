@@ -11,7 +11,6 @@ class KotlinBackendService {
     'com.mansi.gram_seva_backend/sos',
   );
 
-  /// Send SOS message using Kotlin backend
   static Future<bool> sendSOSMessage({
     required String message,
     required String emergencyContact,
@@ -20,7 +19,6 @@ class KotlinBackendService {
   }) async {
     try {
       if (kIsWeb || Platform.isWindows) {
-        // For web/desktop, just log the message
         debugPrint('SOS Message (Desktop): $message');
         return true;
       }
@@ -42,11 +40,9 @@ class KotlinBackendService {
     }
   }
 
-  /// Get current location using Kotlin backend
   static Future<Map<String, dynamic>?> getCurrentLocation() async {
     try {
       if (kIsWeb || Platform.isWindows) {
-        // For web/desktop, return mock location
         return {'latitude': 0.0, 'longitude': 0.0, 'accuracy': 0.0};
       }
 
@@ -61,7 +57,6 @@ class KotlinBackendService {
     }
   }
 
-  /// Save SOS to Firestore using Kotlin backend
   static Future<bool> saveSOSToFirestore({
     required String userName,
     required String phoneNumber,
@@ -71,7 +66,6 @@ class KotlinBackendService {
   }) async {
     try {
       if (kIsWeb || Platform.isWindows) {
-        // For web/desktop, just log
         debugPrint('SOS saved to Firestore (Desktop): $userName');
         return true;
       }
@@ -97,12 +91,10 @@ class KotlinBackendService {
   static Future<Map<String, String>?> pickContact() async {
     try {
       if (kIsWeb || Platform.isWindows) {
-        // For web/desktop, return mock contact
         return {'name': 'Mock Contact', 'phone': '+1234567890'};
       }
 
       final result = await _channel.invokeMethod('pickContact');
-      // Note: This will need to be handled differently as contact picker is async
       return null;
     } on PlatformException catch (e) {
       debugPrint('Platform Exception: ${e.code} - ${e.message}');
@@ -113,14 +105,12 @@ class KotlinBackendService {
     }
   }
 
-  /// Check if device has internet connectivity
   static Future<bool> checkNetworkConnectivity() async {
     try {
       if (kIsWeb || Platform.isWindows) {
-        return true; // Assume web/desktop has connectivity
+        return true;
       }
 
-      // Try to make a simple network request
       final result = await _channel.invokeMethod('checkNetworkConnectivity');
       return result == true;
     } catch (e) {
@@ -129,11 +119,9 @@ class KotlinBackendService {
     }
   }
 
-  /// Check permissions using Kotlin backend
   static Future<Map<String, bool>> checkPermissions() async {
     try {
       if (kIsWeb || Platform.isWindows) {
-        // For web/desktop, return all permissions as granted
         return {'sms': true, 'location': true, 'contacts': true};
       }
 
@@ -148,7 +136,6 @@ class KotlinBackendService {
     }
   }
 
-  /// Complete SOS workflow using Kotlin backend
   static Future<bool> sendCompleteSOS({
     required String userName,
     required String userPhone,
@@ -156,14 +143,12 @@ class KotlinBackendService {
     String? customMessage,
   }) async {
     try {
-      // Get current location
       final location = await getCurrentLocation();
       if (location == null) {
         debugPrint('Failed to get location');
         return false;
       }
 
-      // Create SOS message
       final message =
           customMessage ??
           _createSOSMessage(
@@ -172,7 +157,6 @@ class KotlinBackendService {
             location: location,
           );
 
-      // Send SMS to all emergency contacts
       bool smsSuccess = false;
       for (String contact in emergencyContacts) {
         final success = await sendSOSMessage(
@@ -185,7 +169,6 @@ class KotlinBackendService {
         }
       }
 
-      // Try to save to Firestore, but don't fail if offline
       try {
         await saveSOSToFirestore(
           userName: userName,
@@ -194,7 +177,6 @@ class KotlinBackendService {
           longitude: location['longitude'] ?? 0.0,
         );
       } catch (e) {
-        // If Firestore fails, log locally for later sync
         debugPrint('Firestore save failed, but SMS was sent: $e');
         _saveOfflineSOS(userName, userPhone, location);
       }
@@ -206,15 +188,12 @@ class KotlinBackendService {
     }
   }
 
-  /// Save SOS data locally when offline
   static void _saveOfflineSOS(
     String userName,
     String userPhone,
     Map<String, dynamic> location,
   ) {
     try {
-      // This could be implemented with SharedPreferences or local database
-      // For now, just log the SOS attempt
       debugPrint(
         'Offline SOS saved locally: $userName at ${location['latitude']}, ${location['longitude']}',
       );
@@ -223,15 +202,12 @@ class KotlinBackendService {
     }
   }
 
-  /// Quick SOS function that can be called from anywhere
   static Future<bool> sendQuickSOS(BuildContext context) async {
     try {
-      // Check if we're on a platform that supports Kotlin backend
       if (kIsWeb || Platform.isWindows) {
         _showError(context, 'Quick SOS is only available on mobile devices');
         return false;
       }
-
       // Check network connectivity first
       final hasNetwork = await checkNetworkConnectivity();
       if (!hasNetwork) {
@@ -242,13 +218,11 @@ class KotlinBackendService {
         return false;
       }
 
-      // Get current user data from Firestore
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         _showError(context, 'User not authenticated');
         return false;
       }
-
       // Check network connectivity first
       try {
         final userDoc = await FirebaseFirestore.instance
@@ -279,7 +253,6 @@ class KotlinBackendService {
           );
           return false;
         }
-
         // Check permissions before sending
         final permissions = await checkPermissions();
         if (!permissions['sms']!) {
@@ -298,7 +271,6 @@ class KotlinBackendService {
           return false;
         }
 
-        // Send complete SOS using Kotlin backend
         final success = await sendCompleteSOS(
           userName: userName,
           userPhone: userPhone,

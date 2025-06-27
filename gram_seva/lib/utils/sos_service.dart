@@ -7,17 +7,14 @@ class SOSService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// Quick SOS function that can be called from anywhere
   static Future<bool> sendQuickSOS(BuildContext context) async {
     try {
-      // Get current user data
       final user = _auth.currentUser;
       if (user == null) {
         _showError(context, 'User not authenticated');
         return false;
       }
 
-      // Get user data from Firestore
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       if (!userDoc.exists) {
         _showError(context, 'User data not found');
@@ -39,7 +36,6 @@ class SOSService {
         return false;
       }
 
-      // Send SOS message
       final success = await SmsSender.sendSOSMessage(
         emergencyContacts: emergencyContacts,
         userName: userName,
@@ -60,7 +56,6 @@ class SOSService {
     }
   }
 
-  /// Send SOS with custom message
   static Future<bool> sendCustomSOS(
     BuildContext context, {
     required String customMessage,
@@ -152,7 +147,6 @@ class SOSService {
     }
   }
 
-  /// Check if user has emergency contacts
   static Future<bool> hasEmergencyContacts() async {
     try {
       final user = _auth.currentUser;

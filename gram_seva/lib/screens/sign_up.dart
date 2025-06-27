@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:gram_seva/utils/responsive_helper.dart';
 import '../models/user_model.dart';
 import 'emergency_contacts_screen.dart';
 import 'login_screen.dart';
@@ -31,7 +30,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   void initState() {
     super.initState();
-    // Use post-frame callback to avoid accessing context in initState
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {

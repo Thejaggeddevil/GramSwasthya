@@ -3,32 +3,20 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'screens/splash_screen.dart';
+import 'main.dart';
 
-void main() => mainCommon('production');
-
-void mainCommon(String flavor) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await EasyLocalization.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  runApp(
-    EasyLocalization(
-      supportedLocales: const [Locale('en'), Locale('hi')],
-      path: 'assets/translations',
-      fallbackLocale: const Locale('en'),
-      child: MyApp(flavor: flavor),
-    ),
-  );
+void main() {
+  mainCommon('production');
 }
 
 class MyApp extends StatelessWidget {
-  final String flavor;
-  const MyApp({super.key, required this.flavor});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'Gram Seva',
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
@@ -36,7 +24,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.green,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: SplashScreen(),
+      home: const SplashScreen(),
     );
   }
 }

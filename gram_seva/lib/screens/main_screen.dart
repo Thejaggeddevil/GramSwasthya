@@ -522,8 +522,8 @@ class _MainScreenState extends State<MainScreen> {
           );
         },
         backgroundColor: const Color(0xFF4F8FFF),
-        child: const Icon(Icons.smart_toy, color: Colors.white),
         tooltip: 'Ask AI Health Assistant',
+        child: const Icon(Icons.smart_toy, color: Colors.white),
       ),
     );
   }
