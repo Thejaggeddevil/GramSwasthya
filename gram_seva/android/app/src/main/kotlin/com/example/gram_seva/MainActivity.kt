@@ -15,7 +15,7 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.telephony.SmsManager
 import com.google.firebase.firestore.FirebaseFirestore
-import java.util.*
+import java.util.Date
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 
@@ -157,7 +157,7 @@ class MainActivity: FlutterActivity() {
                 .addOnSuccessListener {
                     result.success("SOS saved to Firestore")
                 }
-                .addOnFailureListener { e ->
+                .addOnFailureListener { e: Exception ->
                     result.error("FIRESTORE_ERROR", "Failed to save SOS: ${e.message}", null)
                 }
         } catch (e: Exception) {
