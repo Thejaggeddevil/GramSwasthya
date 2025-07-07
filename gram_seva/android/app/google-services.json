@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "429921227436",
+    "project_id": "gramseva-11066",
+    "storage_bucket": "gramseva-11066.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:429921227436:android:95757ada8444a162894509",
+        "android_client_info": {
+          "package_name": "com.example.gram_seva"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWnwFUQbOPsPv_WnBU77ku2Z2HtwrCQk0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
