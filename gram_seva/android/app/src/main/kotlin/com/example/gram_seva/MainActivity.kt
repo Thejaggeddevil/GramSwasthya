@@ -10,25 +10,22 @@ import android.net.Uri
 import android.content.Context
 import android.location.Location
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.telephony.SmsManager
 import com.google.firebase.firestore.FirebaseFirestore
-import java.util.*
+import java.util.Date
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.mansi.gram_seva_backend/sos"
-    private val SMS_PERMISSION_REQUEST = 100
-    private val LOCATION_PERMISSION_REQUEST = 101
     private val CONTACT_PICKER_REQUEST = 102
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "sendSOSMessage" -> {
@@ -36,7 +33,7 @@ class MainActivity: FlutterActivity() {
                     val emergencyContact = call.argument<String>("emergencyContact") ?: ""
                     val selectedContact = call.argument<String?>("selectedContact")
                     val sendToBoth = call.argument<Boolean>("sendToBoth") ?: true
-                    
+
                     sendSOSMessage(message, emergencyContact, selectedContact, sendToBoth, result)
                 }
                 "getCurrentLocation" -> {
@@ -48,7 +45,7 @@ class MainActivity: FlutterActivity() {
                     val latitude = call.argument<Double>("latitude") ?: 0.0
                     val longitude = call.argument<Double>("longitude") ?: 0.0
                     val language = call.argument<String>("language") ?: "English"
-                    
+
                     saveSOSToFirestore(userName, phoneNumber, latitude, longitude, language, result)
                 }
                 "pickContact" -> {
@@ -145,12 +142,6 @@ class MainActivity: FlutterActivity() {
     ) {
         try {
             val db = FirebaseFirestore.getInstance()
-            
-            // Check if Firebase is available
-            if (!db.app.isDataCollectionDefaultEnabled) {
-                result.error("FIRESTORE_OFFLINE", "Firebase is offline or not configured", null)
-                return
-            }
 
             val sosData = hashMapOf(
                 "userName" to userName,
@@ -160,32 +151,24 @@ class MainActivity: FlutterActivity() {
                 "language" to language,
                 "timestamp" to Date()
             )
-            
+
             db.collection("sos_history")
                 .add(sosData)
                 .addOnSuccessListener {
                     result.success("SOS saved to Firestore")
                 }
-                .addOnFailureListener { e ->
-                    if (e.message?.contains("offline") == true || e.message?.contains("network") == true) {
-                        result.error("FIRESTORE_OFFLINE", "Firebase is offline. SOS will be saved when connection is restored.", null)
-                    } else {
-                        result.error("FIRESTORE_ERROR", "Failed to save SOS: ${e.message}", null)
-                    }
+                .addOnFailureListener { e: Exception ->
+                    result.error("FIRESTORE_ERROR", "Failed to save SOS: ${e.message}", null)
                 }
         } catch (e: Exception) {
-            if (e.message?.contains("offline") == true || e.message?.contains("network") == true) {
-                result.error("FIRESTORE_OFFLINE", "Firebase is offline. SOS will be saved when connection is restored.", null)
-            } else {
-                result.error("FIRESTORE_ERROR", "Error saving SOS: ${e.message}", null)
-            }
+            result.error("FIRESTORE_ERROR", "Error saving SOS: ${e.message}", null)
         }
     }
 
     private fun pickContact(result: MethodChannel.Result) {
         val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
         startActivityForResult(intent, CONTACT_PICKER_REQUEST)
-        // Note: This will need to be handled in onActivityResult
+        // Note: You may need to use Activity Result API or handle the callback appropriately.
         result.success("Contact picker launched")
     }
 
@@ -200,7 +183,7 @@ class MainActivity: FlutterActivity() {
             "location" to locationPermission,
             "contacts" to contactPermission
         )
-        
+
         result.success(permissions)
     }
 
@@ -215,7 +198,7 @@ class MainActivity: FlutterActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        
+
         if (requestCode == CONTACT_PICKER_REQUEST && resultCode == RESULT_OK) {
             val uri: Uri? = data?.data
             uri?.let {
@@ -233,14 +216,9 @@ class MainActivity: FlutterActivity() {
                 val name = cursor?.getString(0) ?: "Unknown"
                 val number = cursor?.getString(1) ?: ""
                 cursor?.close()
-                
-                // Send the contact data back to Flutter
-                val contactData = mapOf(
-                    "name" to name,
-                    "phone" to number
-                )
-                // You would need to implement a way to send this back to Flutter
-                // This could be done through a callback or event channel
+
+                // Optionally: send the contact data back to Flutter via another MethodChannel or EventChannel
+                Toast.makeText(this, "Selected: $name ($number)", Toast.LENGTH_SHORT).show()
             }
         }
     }
